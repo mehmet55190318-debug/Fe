@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Direct Chat</title>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-database.min.js"></script>
+
+<style>
+body{margin:0;background:#000;color:#fff;font-family:system-ui;height:100vh;overflow:hidden}
+
+/* LOGIN */
+#login{position:fixed;inset:0;display:flex;justify-content:center;align-items:center}
+.box{width:320px}
+.box h1{text-align:center;margin-bottom:20px}
+
+input{
+width:100%;padding:12px;margin:6px 0;
+background:#111;border:1px solid #333;color:#fff;border-radius:8px
+}
+
+button{
+width:100%;padding:12px;background:#0095f6;
+border:none;color:#fff;border-radius:8px;font-weight:600
+}
+
+/* CHAT */
+#chat{display:none;flex-direction:column;height:100vh}
+
+.header{
+display:flex;justify-content:space-between;
+padding:10px;border-bottom:1px solid #222;align-items:center
+}
+
+.avatar{
+width:38px;height:38px;border-radius:50%;
+background:linear-gradient(45deg,#ff00aa,#7a00ff);
+display:flex;justify-content:center;align-items:center
+}
+
+.messages{
+flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px
+}
+
+.msg{
+max-width:70%;padding:10px 14px;border-radius:16px;
+word-wrap:break-word
+}
+
+.me{align-self:flex-end;background:#7a00ff}
+.other{align-self:flex-start;background:#222}
+
+.input{
+display:flex;padding:10px;border-top:1px solid #222
+}
+
+.input input{
+flex:1;border-radius:20px;border:1px solid #333;
+background:#111;color:#fff;padding:10px
+}
+
+.input button{
+width:auto;margin-left:8px;border-radius:20px;padding:10px 14px
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="box">
+    <h1>Direct</h1>
+    <input id="u" placeholder="Kullanıcı adı">
+    <input id="p" type="password" placeholder="Şifre">
+    <button onclick="login()">Giriş Yap</button>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div id="chat">
+
+  <div class="header">
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="avatar" id="av">DM</div>
+      <div id="title">Chat</div>
+    </div>
+    <button onclick="logout()" style="background:none;color:#ff4d4d;border:none">Çıkış</button>
+  </div>
+
+  <div class="messages" id="msgs"></div>
+
+  <div class="input">
+    <input id="m" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter')send()">
+    <button onclick="send()">Gönder</button>
+  </div>
+
+</div>
+
+<script>
+
+/* 🔥 FIREBASE CONFIG (BURAYI DOLDUR) */
+const firebaseConfig = {
+  apiKey: "XXX",
+  authDomain: "XXX",
+  databaseURL: "https://premium-chat-default-rtdb.firebaseio.com/",
+  projectId: "XXX"
+};
+
+if (!firebase.apps || !firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.database();
+const chatRef = db.ref("chat_room");
+
+let user = "";
+
+/* LOGIN */
+function login(){
+  const u = document.getElementById("u").value.trim().toLowerCase();
+  const p = document.getElementById("p").value.trim();
+
+  if((u==="mehmet"||u==="fatmanur") && p==="1234"){
+    user = u;
+
+    document.getElementById("login").style.display="none";
+    document.getElementById("chat").style.display="flex";
+
+    document.getElementById("av").innerText = u[0].toUpperCase();
+    document.getElementById("title").innerText =
+      u==="mehmet" ? "fatmanur" : "mehmet";
+
+    listen();
+    confetti();
+  } else {
+    alert("Hatalı giriş");
+  }
+}
+
+/* LOGOUT */
+function logout(){
+  location.reload();
+}
+
+/* MESAJ DİNLE */
+function listen(){
+  const box = document.getElementById("msgs");
+  box.innerHTML="";
+
+  chatRef.off();
+  chatRef.on("child_added", snap=>{
+    const m = snap.val();
+
+    const div = document.createElement("div");
+    div.className = "msg " + (m.user===user ? "me":"other");
+    div.innerText = m.text;
+
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
+/* MESAJ GÖNDER */
+function send(){
+  const inp = document.getElementById("m");
+  const text = inp.value.trim();
+  if(!text) return;
+
+  chatRef.push({
+    user,
+    text,
+    time: Date.now()
+  });
+
+  inp.value="";
+}
+
+/* EFEKT */
+function confetti(){
+  window.confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+}
+
+</script>
+
+</body>
+</html>
